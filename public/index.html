@@ -37,7 +37,12 @@
         <div class="local-panel" id="localPanel">
           <video id="localVideo" class="local-video" autoplay muted playsinline></video>
 
-          <button id="switchCameraBtn" class="switch-camera-btn hidden" type="button" aria-label="Switch camera">
+          <button
+            id="switchCameraBtn"
+            class="switch-camera-btn hidden"
+            type="button"
+            aria-label="Switch camera"
+          >
             <svg viewBox="0 0 24 24" class="switch-camera-icon" aria-hidden="true">
               <path d="M7 8l2.2-3h5.6L17 8h2a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h2zm5 7a3 3 0 1 0 0-6a3 3 0 0 0 0 6z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M9 3H5m0 0l2 2M5 3l2-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -47,12 +52,12 @@
         </div>
 
         <div class="call-controls hidden" id="callControls">
-          <button id="muteBtn" class="control-btn mute-btn" type="button">
+          <button id="muteBtn" class="control-btn mute-btn" type="button" aria-label="Mute or unmute microphone">
             <span class="control-icon" id="muteIcon">🎤</span>
             <span id="muteBtnText">Mute</span>
           </button>
 
-          <button id="endCallBtn" class="control-btn end-btn" type="button">
+          <button id="endCallBtn" class="control-btn end-btn" type="button" aria-label="End call">
             <span class="control-icon">📞</span>
             <span>End</span>
           </button>

@@ -27,7 +27,9 @@ let currentFacingMode = "user";
 let controlsTimer = null;
 
 const rtcConfig = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" }
+  ]
 };
 
 function isMobileDevice() {
@@ -76,32 +78,22 @@ function showControlsTemporarily() {
   }, 5000);
 }
 
-async function initLocalMedia(facingMode = currentFacingMode, keepAudioTrack = null) {
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-    localStream = null;
-  }
+async function initLocalMedia(facingMode = currentFacingMode) {
+  if (localStream) return localStream;
 
-  let audioTrack = keepAudioTrack;
-
-  if (!audioTrack) {
-    const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: false
-    });
-    audioTrack = audioOnlyStream.getAudioTracks()[0];
-  }
-
-  const videoStream = await navigator.mediaDevices.getUserMedia({
-    video: isMobileDevice() ? { facingMode } : true,
-    audio: false
+  const stream = await navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: isMobileDevice() ? { facingMode } : true
   });
 
-  const videoTrack = videoStream.getVideoTracks()[0];
-
-  localStream = new MediaStream([videoTrack, audioTrack]);
+  localStream = stream;
   localVideo.srcObject = localStream;
   currentFacingMode = facingMode;
+
+  const audioTrack = localStream.getAudioTracks()[0];
+  if (audioTrack) {
+    audioTrack.enabled = !isMuted;
+  }
 
   if (isMobileDevice()) {
     switchCameraBtn.classList.remove("hidden");
@@ -141,6 +133,8 @@ function createPeerConnection() {
   };
 
   peerConnection.onconnectionstatechange = () => {
+    if (!peerConnection) return;
+
     const state = peerConnection.connectionState;
     if (state === "failed" || state === "disconnected" || state === "closed") {
       resetRemoteView();
@@ -164,44 +158,44 @@ async function createAndSendOffer() {
   }
 }
 
-async function replaceVideoTrack() {
-  if (!peerConnection || !localStream) return;
-
-  const videoTrack = localStream.getVideoTracks()[0];
-  const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
-
-  if (sender && videoTrack) {
-    await sender.replaceTrack(videoTrack);
-  }
-}
-
-
 async function switchCamera() {
   if (!localStream) return;
 
   const currentAudioTrack = localStream.getAudioTracks()[0];
+  const oldVideoTrack = localStream.getVideoTracks()[0];
   const nextFacingMode = currentFacingMode === "user" ? "environment" : "user";
 
-  await initLocalMedia(nextFacingMode, currentAudioTrack);
+  const newVideoStream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: nextFacingMode },
+    audio: false
+  });
+
+  const newVideoTrack = newVideoStream.getVideoTracks()[0];
 
   if (peerConnection) {
-    const videoTrack = localStream.getVideoTracks()[0];
     const videoSender = peerConnection.getSenders().find(
       sender => sender.track && sender.track.kind === "video"
     );
 
-    if (videoSender && videoTrack) {
-      await videoSender.replaceTrack(videoTrack);
-    }
-
-    const audioSender = peerConnection.getSenders().find(
-      sender => sender.track && sender.track.kind === "audio"
-    );
-
-    if (audioSender && currentAudioTrack) {
-      await audioSender.replaceTrack(currentAudioTrack);
+    if (videoSender && newVideoTrack) {
+      await videoSender.replaceTrack(newVideoTrack);
     }
   }
+
+  if (oldVideoTrack) {
+    oldVideoTrack.stop();
+  }
+
+  const rebuiltStreamTracks = [];
+  if (newVideoTrack) rebuiltStreamTracks.push(newVideoTrack);
+  if (currentAudioTrack) {
+    currentAudioTrack.enabled = !isMuted;
+    rebuiltStreamTracks.push(currentAudioTrack);
+  }
+
+  localStream = new MediaStream(rebuiltStreamTracks);
+  localVideo.srcObject = localStream;
+  currentFacingMode = nextFacingMode;
 
   showControlsTemporarily();
 }
@@ -247,6 +241,8 @@ function leaveCall() {
   welcomeModal.classList.add("active");
   callControls.classList.add("hidden");
 
+  currentRoom = "";
+  currentFacingMode = "user";
   isMuted = false;
   muteIcon.textContent = "🎤";
   muteBtnText.textContent = "Mute";
@@ -279,17 +275,37 @@ endCallBtn.addEventListener("click", () => {
   leaveCall();
 });
 
-switchCameraBtn.addEventListener("click", async () => {
-  await switchCamera();
+if (switchCameraBtn) {
+  switchCameraBtn.addEventListener("click", async (event) => {
+    event.stopPropagation();
+    try {
+      await switchCamera();
+    } catch (error) {
+      console.error("Camera switch failed:", error);
+    }
+  });
+}
+
+if (videoStage) {
+  videoStage.addEventListener("click", (event) => {
+    if (
+      event.target.closest(".control-btn") ||
+      event.target.closest(".switch-camera-btn")
+    ) {
+      return;
+    }
+
+    showControlsTemporarily();
+  });
+}
+
+socket.on("joined", (room) => {
+  console.log(`Joined room: ${room}`);
 });
 
-videoStage.addEventListener("click", (event) => {
-  if (
-    event.target.closest(".control-btn") ||
-    event.target.closest(".switch-camera-btn")
-  ) return;
-
-  showControlsTemporarily();
+socket.on("peer-joined", async () => {
+  if (!localStream) return;
+  if (!peerConnection) createPeerConnection();
 });
 
 socket.on("ready", async () => {

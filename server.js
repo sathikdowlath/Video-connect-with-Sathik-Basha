@@ -1,11 +1,11 @@
 const express = require("express");
 const http = require("http");
-const socketIO = require("socket.io");
 const path = require("path");
+const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIO(server);
+const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -15,20 +15,21 @@ io.on("connection", (socket) => {
   socket.on("join", (room) => {
     if (!room) return;
 
-    socketRoomMap.set(socket.id, room);
-    socket.join(room);
+    const normalizedRoom = String(room).trim();
+    if (!normalizedRoom) return;
 
-    const clientsInRoom = io.sockets.adapter.rooms.get(room);
-    const count = clientsInRoom ? clientsInRoom.size : 0;
+    socketRoomMap.set(socket.id, normalizedRoom);
+    socket.join(normalizedRoom);
 
-    if (count > 1) {
-      socket.to(room).emit("ready");
+    const roomSet = io.sockets.adapter.rooms.get(normalizedRoom);
+    const roomSize = roomSet ? roomSet.size : 0;
+
+    socket.emit("joined", normalizedRoom);
+
+    if (roomSize > 1) {
+      socket.to(normalizedRoom).emit("peer-joined", socket.id);
+      socket.to(normalizedRoom).emit("ready");
     }
-
-    socket.emit("joined", room);
-    socket.to(room).emit("peer-joined", socket.id);
-
-    console.log(`Socket ${socket.id} joined room ${room}`);
   });
 
   socket.on("offer", (room, offer) => {
@@ -45,22 +46,24 @@ io.on("connection", (socket) => {
 
   socket.on("leave", () => {
     const room = socketRoomMap.get(socket.id);
-    if (room) {
-      socket.leave(room);
-      socket.to(room).emit("peer-left");
-      socketRoomMap.delete(socket.id);
-      console.log(`Socket ${socket.id} left room ${room}`);
-    }
+    if (!room) return;
+
+    socket.leave(room);
+    socket.to(room).emit("peer-left");
+    socketRoomMap.delete(socket.id);
   });
 
   socket.on("disconnect", () => {
     const room = socketRoomMap.get(socket.id);
-    if (room) {
-      socket.to(room).emit("peer-left");
-      socketRoomMap.delete(socket.id);
-      console.log(`Socket ${socket.id} disconnected from room ${room}`);
-    }
+    if (!room) return;
+
+    socket.to(room).emit("peer-left");
+    socketRoomMap.delete(socket.id);
   });
+});
+
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 const PORT = process.env.PORT || 3000;
