@@ -12,6 +12,7 @@ const roomBadge = document.getElementById("roomBadge");
 
 const muteBtn = document.getElementById("muteBtn");
 const muteBtnText = document.getElementById("muteBtnText");
+const muteIcon = document.getElementById("muteIcon");
 const endCallBtn = document.getElementById("endCallBtn");
 const localVideoFloat = document.getElementById("localVideoFloat");
 
@@ -19,9 +20,12 @@ let localStream = null;
 let peerConnection = null;
 let currentRoom = "";
 let isMuted = false;
+let isMakingOffer = false;
 
 const rtcConfig = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" }
+  ]
 };
 
 async function initLocalMedia() {
@@ -36,6 +40,14 @@ async function initLocalMedia() {
   return localStream;
 }
 
+function stopLocalMedia() {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  localVideo.srcObject = null;
+}
+
 function clearRoomError() {
   roomCodeInput.classList.remove("error");
   roomError.classList.add("hidden");
@@ -46,19 +58,36 @@ function showRoomError() {
   roomError.classList.remove("hidden");
 }
 
-roomCodeInput.addEventListener("input", clearRoomError);
-
 function showConnectedCode(code) {
   roomBadge.textContent = `You are connected through code: ${code}`;
   roomBadge.classList.remove("hidden");
 }
 
+function resetRemoteView() {
+  remoteVideo.srcObject = null;
+  remotePlaceholder.classList.remove("hidden");
+}
+
+function cleanupPeerConnection() {
+  if (peerConnection) {
+    peerConnection.ontrack = null;
+    peerConnection.onicecandidate = null;
+    peerConnection.onconnectionstatechange = null;
+    peerConnection.close();
+    peerConnection = null;
+  }
+}
+
 function createPeerConnection() {
+  cleanupPeerConnection();
+
   peerConnection = new RTCPeerConnection(rtcConfig);
 
-  localStream.getTracks().forEach(track => {
-    peerConnection.addTrack(track, localStream);
-  });
+  if (localStream) {
+    localStream.getTracks().forEach(track => {
+      peerConnection.addTrack(track, localStream);
+    });
+  }
 
   peerConnection.ontrack = (event) => {
     remoteVideo.srcObject = event.streams[0];
@@ -66,31 +95,34 @@ function createPeerConnection() {
   };
 
   peerConnection.onicecandidate = (event) => {
-    if (event.candidate) {
+    if (event.candidate && currentRoom) {
       socket.emit("ice-candidate", currentRoom, event.candidate);
     }
   };
 
   peerConnection.onconnectionstatechange = () => {
-    if (
-      peerConnection.connectionState === "disconnected" ||
-      peerConnection.connectionState === "failed" ||
-      peerConnection.connectionState === "closed"
-    ) {
-      remoteVideo.srcObject = null;
-      remotePlaceholder.classList.remove("hidden");
+    const state = peerConnection.connectionState;
+
+    if (state === "failed" || state === "disconnected" || state === "closed") {
+      resetRemoteView();
     }
   };
 
   return peerConnection;
 }
 
-async function makeOffer() {
+async function createAndSendOffer() {
   if (!peerConnection) createPeerConnection();
+  if (isMakingOffer) return;
 
-  const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer);
-  socket.emit("offer", currentRoom, offer);
+  try {
+    isMakingOffer = true;
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    socket.emit("offer", currentRoom, offer);
+  } finally {
+    isMakingOffer = false;
+  }
 }
 
 async function joinRoom() {
@@ -106,15 +138,29 @@ async function joinRoom() {
   currentRoom = roomValue;
 
   await initLocalMedia();
-
-  if (!peerConnection) {
-    createPeerConnection();
-  }
+  createPeerConnection();
 
   showConnectedCode(currentRoom);
   welcomeModal.classList.remove("active");
 
   socket.emit("join", currentRoom);
+}
+
+function leaveCall() {
+  if (currentRoom) {
+    socket.emit("leave");
+  }
+
+  cleanupPeerConnection();
+  resetRemoteView();
+  stopLocalMedia();
+
+  roomBadge.classList.add("hidden");
+  welcomeModal.classList.add("active");
+
+  isMuted = false;
+  muteIcon.textContent = "🎤";
+  muteBtnText.textContent = "Mute";
 }
 
 connectBtn.addEventListener("click", joinRoom);
@@ -125,6 +171,8 @@ roomCodeInput.addEventListener("keydown", (event) => {
   }
 });
 
+roomCodeInput.addEventListener("input", clearRoomError);
+
 muteBtn.addEventListener("click", () => {
   if (!localStream) return;
 
@@ -133,31 +181,36 @@ muteBtn.addEventListener("click", () => {
     track.enabled = !isMuted;
   });
 
-  muteBtn.querySelector(".control-icon").textContent = isMuted ? "🔇" : "🎤";
+  muteIcon.textContent = isMuted ? "🔇" : "🎤";
   muteBtnText.textContent = isMuted ? "Unmute" : "Mute";
 });
 
 endCallBtn.addEventListener("click", () => {
-  if (peerConnection) {
-    peerConnection.close();
-    peerConnection = null;
-  }
+  leaveCall();
+});
 
-  if (remoteVideo.srcObject) {
-    remoteVideo.srcObject = null;
-  }
+socket.on("joined", (room) => {
+  console.log(`Joined room: ${room}`);
+});
 
-  remotePlaceholder.classList.remove("hidden");
-  roomBadge.classList.add("hidden");
-  welcomeModal.classList.add("active");
+socket.on("peer-joined", async () => {
+  if (!localStream) return;
+  if (!peerConnection) createPeerConnection();
 });
 
 socket.on("ready", async () => {
-  await makeOffer();
+  if (!localStream) return;
+  await createAndSendOffer();
 });
 
 socket.on("offer", async (offer) => {
-  if (!peerConnection) createPeerConnection();
+  if (!localStream) {
+    await initLocalMedia();
+  }
+
+  if (!peerConnection) {
+    createPeerConnection();
+  }
 
   await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
   const answer = await peerConnection.createAnswer();
@@ -176,7 +229,15 @@ socket.on("ice-candidate", async (candidate) => {
   try {
     await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
   } catch (error) {
-    console.error("Error adding ICE candidate:", error);
+    console.error("ICE candidate error:", error);
+  }
+});
+
+socket.on("peer-left", () => {
+  resetRemoteView();
+  cleanupPeerConnection();
+  if (localStream) {
+    createPeerConnection();
   }
 });
 
@@ -240,11 +301,3 @@ function makeDraggable(element) {
 }
 
 makeDraggable(localVideoFloat);
-
-window.addEventListener("load", async () => {
-  try {
-    await initLocalMedia();
-  } catch (error) {
-    console.error("Media access error:", error);
-  }
-});
