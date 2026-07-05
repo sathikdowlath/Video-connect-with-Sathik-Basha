@@ -2,15 +2,13 @@
   --bg: #0b141a;
   --surface: #111b21;
   --surface-2: #1f2c34;
-  --surface-3: #202c33;
   --text: #e9edef;
   --muted: #8696a0;
   --accent: #00a884;
   --accent-dark: #008069;
   --danger: #ea4335;
+  --danger-soft: rgba(234, 67, 53, 0.18);
   --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
-  --radius: 20px;
-  --radius-full: 999px;
 }
 
 * {
@@ -21,10 +19,10 @@ html,
 body {
   margin: 0;
   padding: 0;
+  min-height: 100%;
   font-family: "Inter", sans-serif;
   background: var(--bg);
   color: var(--text);
-  min-height: 100%;
 }
 
 body {
@@ -34,6 +32,10 @@ body {
 button,
 input {
   font: inherit;
+}
+
+.hidden {
+  display: none !important;
 }
 
 .app-shell {
@@ -48,7 +50,7 @@ input {
 .topbar {
   padding: 18px 22px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
-  background: rgba(17, 27, 33, 0.9);
+  background: rgba(17, 27, 33, 0.92);
   backdrop-filter: blur(10px);
 }
 
@@ -87,9 +89,6 @@ input {
 .video-stage {
   position: relative;
   flex: 1;
-  display: flex;
-  align-items: stretch;
-  justify-content: center;
   min-height: calc(100vh - 150px);
   border-radius: 28px;
   overflow: hidden;
@@ -118,9 +117,22 @@ input {
   place-items: center;
   color: var(--muted);
   font-size: 1rem;
-  letter-spacing: 0.2px;
   background:
     radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 45%);
+}
+
+.room-badge {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  z-index: 15;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(17, 27, 33, 0.88);
+  color: #d8fddf;
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.9rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.25);
 }
 
 .local-video-float {
@@ -132,7 +144,7 @@ input {
   border-radius: 50%;
   overflow: hidden;
   border: 4px solid rgba(255,255,255,0.14);
-  background: #0f0f0f;
+  background: #111;
   box-shadow: 0 16px 35px rgba(0,0,0,0.45);
   cursor: grab;
   z-index: 30;
@@ -178,15 +190,6 @@ input {
   color: white;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.control-btn:hover {
-  transform: translateY(-2px) scale(1.02);
-}
-
-.control-btn:active {
-  transform: scale(0.96);
 }
 
 .control-icon {
@@ -241,7 +244,6 @@ input {
 .welcome-modal p {
   margin: 0 0 20px;
   color: var(--muted);
-  line-height: 1.5;
 }
 
 .input-label {
@@ -260,12 +262,23 @@ input {
   padding: 0 16px;
   background: #0b141a;
   color: var(--text);
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .room-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(0,168,132,0.18);
+}
+
+.room-input.error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.input-error {
+  color: #ff8f87;
+  font-size: 0.87rem;
+  margin-bottom: 14px;
 }
 
 .connect-btn {
@@ -277,19 +290,6 @@ input {
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease;
-}
-
-.connect-btn:hover {
-  background: var(--accent-dark);
-}
-
-.connect-btn:active {
-  transform: scale(0.98);
-}
-
-.hidden {
-  display: none !important;
 }
 
 @media (max-width: 768px) {
@@ -327,12 +327,11 @@ input {
     font-size: 1.2rem;
   }
 
-  .welcome-modal {
-    padding: 22px;
-    border-radius: 22px;
-  }
-
-  .welcome-modal h2 {
-    font-size: 1.2rem;
+  .room-badge {
+    top: 12px;
+    left: 12px;
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    max-width: calc(100% - 130px);
   }
 }

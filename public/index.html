@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -28,16 +28,18 @@
           <div class="remote-placeholder" id="remotePlaceholder">
             Waiting for remote participant...
           </div>
+
+          <div class="room-badge hidden" id="roomBadge"></div>
         </div>
 
-        <div class="local-video-float" id="localVideoFloat" aria-label="Local video preview" role="button" tabindex="0">
+        <div class="local-video-float" id="localVideoFloat">
           <video id="localVideo" class="local-video" autoplay muted playsinline></video>
         </div>
 
         <div class="call-controls">
           <button id="muteBtn" class="control-btn mute-btn" type="button" aria-label="Mute or unmute microphone">
             <span class="control-icon">🎤</span>
-            <span>Mute</span>
+            <span id="muteBtnText">Mute</span>
           </button>
 
           <button id="endCallBtn" class="control-btn end-btn" type="button" aria-label="End call">
@@ -66,6 +68,7 @@
         placeholder="Enter the code number"
         autocomplete="off"
       />
+      <div class="input-error hidden" id="roomError">Please enter the code number</div>
 
       <button id="connectBtn" class="connect-btn" type="button">Connect</button>
     </div>
