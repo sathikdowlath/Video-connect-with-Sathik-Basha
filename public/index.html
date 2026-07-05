@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video connect with Sathik Basha</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-dot"></div>
+        <div>
+          <h1 class="app-title">Video connect with Sathik Basha</h1>
+          <p class="app-subtitle">Secure personal and community video calling</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="call-page">
+      <section class="video-stage">
+        <div class="remote-video-wrap">
+          <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
+          <div class="remote-placeholder" id="remotePlaceholder">
+            Waiting for remote participant...
+          </div>
+        </div>
+
+        <div class="local-video-float" id="localVideoFloat" aria-label="Local video preview" role="button" tabindex="0">
+          <video id="localVideo" class="local-video" autoplay muted playsinline></video>
+        </div>
+
+        <div class="call-controls">
+          <button id="muteBtn" class="control-btn mute-btn" type="button" aria-label="Mute or unmute microphone">
+            <span class="control-icon">🎤</span>
+            <span>Mute</span>
+          </button>
+
+          <button id="endCallBtn" class="control-btn end-btn" type="button" aria-label="End call">
+            <span class="control-icon">📞</span>
+            <span>End</span>
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer-note">
+      This was developed by Sathik Basha for personal and community use.
+    </footer>
+  </div>
+
+  <div class="modal-backdrop active" id="welcomeModal">
+    <div class="welcome-modal">
+      <h2>Welcome to Video connect with Sathik Basha</h2>
+      <p>Enter your room or code number to start connecting.</p>
+
+      <label for="roomCode" class="input-label">Code number</label>
+      <input
+        id="roomCode"
+        class="room-input"
+        type="text"
+        placeholder="Enter the code number"
+        autocomplete="off"
+      />
+
+      <button id="connectBtn" class="connect-btn" type="button">Connect</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
