@@ -5,6 +5,7 @@ const roomCodeInput = document.getElementById("roomCode");
 const roomError = document.getElementById("roomError");
 const connectBtn = document.getElementById("connectBtn");
 
+const videoStage = document.getElementById("videoStage");
 const localVideo = document.getElementById("localVideo");
 const remoteVideo = document.getElementById("remoteVideo");
 const remotePlaceholder = document.getElementById("remotePlaceholder");
@@ -14,38 +15,23 @@ const muteBtn = document.getElementById("muteBtn");
 const muteBtnText = document.getElementById("muteBtnText");
 const muteIcon = document.getElementById("muteIcon");
 const endCallBtn = document.getElementById("endCallBtn");
-const localVideoFloat = document.getElementById("localVideoFloat");
+const callControls = document.getElementById("callControls");
+const switchCameraBtn = document.getElementById("switchCameraBtn");
 
 let localStream = null;
 let peerConnection = null;
 let currentRoom = "";
 let isMuted = false;
 let isMakingOffer = false;
+let currentFacingMode = "user";
+let controlsTimer = null;
 
 const rtcConfig = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" }
-  ]
+  iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 };
 
-async function initLocalMedia() {
-  if (localStream) return localStream;
-
-  localStream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true
-  });
-
-  localVideo.srcObject = localStream;
-  return localStream;
-}
-
-function stopLocalMedia() {
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop());
-    localStream = null;
-  }
-  localVideo.srcObject = null;
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 }
 
 function clearRoomError() {
@@ -78,6 +64,49 @@ function cleanupPeerConnection() {
   }
 }
 
+function showControlsTemporarily() {
+  callControls.classList.remove("hidden");
+
+  if (controlsTimer) {
+    clearTimeout(controlsTimer);
+  }
+
+  controlsTimer = setTimeout(() => {
+    callControls.classList.add("hidden");
+  }, 5000);
+}
+
+async function initLocalMedia(facingMode = currentFacingMode) {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+
+  const videoConstraints = isMobileDevice()
+    ? { facingMode }
+    : true;
+
+  localStream = await navigator.mediaDevices.getUserMedia({
+    video: videoConstraints,
+    audio: true
+  });
+
+  localVideo.srcObject = localStream;
+  currentFacingMode = facingMode;
+
+  if (isMobileDevice()) {
+    switchCameraBtn.classList.remove("hidden");
+  }
+}
+
+function stopLocalMedia() {
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop());
+    localStream = null;
+  }
+  localVideo.srcObject = null;
+}
+
 function createPeerConnection() {
   cleanupPeerConnection();
 
@@ -102,7 +131,6 @@ function createPeerConnection() {
 
   peerConnection.onconnectionstatechange = () => {
     const state = peerConnection.connectionState;
-
     if (state === "failed" || state === "disconnected" || state === "closed") {
       resetRemoteView();
     }
@@ -125,12 +153,35 @@ async function createAndSendOffer() {
   }
 }
 
+async function replaceVideoTrack() {
+  if (!peerConnection || !localStream) return;
+
+  const videoTrack = localStream.getVideoTracks()[0];
+  const sender = peerConnection.getSenders().find(s => s.track && s.track.kind === "video");
+
+  if (sender && videoTrack) {
+    await sender.replaceTrack(videoTrack);
+  }
+}
+
+async function switchCamera() {
+  const nextFacingMode = currentFacingMode === "user" ? "environment" : "user";
+  await initLocalMedia(nextFacingMode);
+  await replaceVideoTrack();
+  showControlsTemporarily();
+}
+
 async function joinRoom() {
   const roomValue = roomCodeInput.value.trim();
 
   if (!roomValue) {
     showRoomError();
     roomCodeInput.focus();
+
+    setTimeout(() => {
+      roomCodeInput.blur();
+    }, 150);
+
     return;
   }
 
@@ -142,8 +193,10 @@ async function joinRoom() {
 
   showConnectedCode(currentRoom);
   welcomeModal.classList.remove("active");
+  roomCodeInput.blur();
 
   socket.emit("join", currentRoom);
+  showControlsTemporarily();
 }
 
 function leaveCall() {
@@ -157,6 +210,7 @@ function leaveCall() {
 
   roomBadge.classList.add("hidden");
   welcomeModal.classList.add("active");
+  callControls.classList.add("hidden");
 
   isMuted = false;
   muteIcon.textContent = "🎤";
@@ -183,19 +237,24 @@ muteBtn.addEventListener("click", () => {
 
   muteIcon.textContent = isMuted ? "🔇" : "🎤";
   muteBtnText.textContent = isMuted ? "Unmute" : "Mute";
+  showControlsTemporarily();
 });
 
 endCallBtn.addEventListener("click", () => {
   leaveCall();
 });
 
-socket.on("joined", (room) => {
-  console.log(`Joined room: ${room}`);
+switchCameraBtn.addEventListener("click", async () => {
+  await switchCamera();
 });
 
-socket.on("peer-joined", async () => {
-  if (!localStream) return;
-  if (!peerConnection) createPeerConnection();
+videoStage.addEventListener("click", (event) => {
+  if (
+    event.target.closest(".control-btn") ||
+    event.target.closest(".switch-camera-btn")
+  ) return;
+
+  showControlsTemporarily();
 });
 
 socket.on("ready", async () => {
@@ -236,68 +295,8 @@ socket.on("ice-candidate", async (candidate) => {
 socket.on("peer-left", () => {
   resetRemoteView();
   cleanupPeerConnection();
+
   if (localStream) {
     createPeerConnection();
   }
 });
-
-function makeDraggable(element) {
-  let isDragging = false;
-  let offsetX = 0;
-  let offsetY = 0;
-
-  const startDrag = (clientX, clientY) => {
-    const rect = element.getBoundingClientRect();
-    isDragging = true;
-    offsetX = clientX - rect.left;
-    offsetY = clientY - rect.top;
-    element.classList.add("dragging");
-  };
-
-  const onDrag = (clientX, clientY) => {
-    if (!isDragging) return;
-
-    const parent = document.querySelector(".video-stage");
-    const parentRect = parent.getBoundingClientRect();
-
-    let left = clientX - parentRect.left - offsetX;
-    let top = clientY - parentRect.top - offsetY;
-
-    left = Math.max(0, Math.min(left, parentRect.width - element.offsetWidth));
-    top = Math.max(0, Math.min(top, parentRect.height - element.offsetHeight));
-
-    element.style.left = `${left}px`;
-    element.style.top = `${top}px`;
-    element.style.right = "auto";
-  };
-
-  const stopDrag = () => {
-    isDragging = false;
-    element.classList.remove("dragging");
-  };
-
-  element.addEventListener("mousedown", (e) => {
-    startDrag(e.clientX, e.clientY);
-  });
-
-  window.addEventListener("mousemove", (e) => {
-    onDrag(e.clientX, e.clientY);
-  });
-
-  window.addEventListener("mouseup", stopDrag);
-
-  element.addEventListener("touchstart", (e) => {
-    const touch = e.touches[0];
-    startDrag(touch.clientX, touch.clientY);
-  }, { passive: true });
-
-  window.addEventListener("touchmove", (e) => {
-    if (!isDragging) return;
-    const touch = e.touches[0];
-    onDrag(touch.clientX, touch.clientY);
-  }, { passive: true });
-
-  window.addEventListener("touchend", stopDrag);
-}
-
-makeDraggable(localVideoFloat);

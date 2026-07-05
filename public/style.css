@@ -5,7 +5,6 @@
   --text: #e9edef;
   --muted: #8696a0;
   --accent: #00a884;
-  --accent-dark: #008069;
   --danger: #ea4335;
   --danger-soft: rgba(234, 67, 53, 0.18);
   --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
@@ -15,7 +14,8 @@
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
   min-height: 100%;
@@ -26,6 +26,11 @@ html, body {
 
 body {
   min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
 }
 
 .hidden {
@@ -42,7 +47,7 @@ body {
 }
 
 .topbar {
-  padding: 18px 22px;
+  padding: 16px 18px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
   background: rgba(17, 27, 33, 0.92);
   backdrop-filter: blur(10px);
@@ -51,7 +56,7 @@ body {
 .brand-wrap {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
 .brand-dot {
@@ -64,27 +69,28 @@ body {
 
 .app-title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   font-weight: 700;
 }
 
 .app-subtitle {
   margin: 2px 0 0;
   color: var(--muted);
-  font-size: 0.92rem;
+  font-size: 0.9rem;
 }
 
 .call-page {
   flex: 1;
-  display: flex;
-  padding: 16px;
+  padding: 10px;
 }
 
 .video-stage {
   position: relative;
-  flex: 1;
-  min-height: calc(100vh - 150px);
-  border-radius: 28px;
+  width: 100%;
+  height: calc(100vh - 132px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 24px;
   overflow: hidden;
   background: #060a0d;
   box-shadow: var(--shadow);
@@ -93,7 +99,7 @@ body {
 .remote-video-wrap {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 70%;
   background: #000;
 }
 
@@ -101,6 +107,7 @@ body {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  background: #000;
 }
 
 .remote-placeholder {
@@ -113,38 +120,12 @@ body {
   background: radial-gradient(circle at center, rgba(255,255,255,0.04), transparent 45%);
 }
 
-.room-badge {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  z-index: 15;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: rgba(17, 27, 33, 0.88);
-  color: #d8fddf;
-  border: 1px solid rgba(255,255,255,0.08);
-  font-size: 0.9rem;
-}
-
-.local-video-float {
-  position: absolute;
-  top: 22px;
-  right: 22px;
-  width: 150px;
-  height: 150px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 4px solid rgba(255,255,255,0.14);
-  background: #111;
-  box-shadow: 0 16px 35px rgba(0,0,0,0.45);
-  cursor: grab;
-  z-index: 30;
-  user-select: none;
-  touch-action: none;
-}
-
-.local-video-float.dragging {
-  cursor: grabbing;
+.local-panel {
+  position: relative;
+  width: 100%;
+  height: 30%;
+  background: #0d1317;
+  border-top: 1px solid rgba(255,255,255,0.08);
 }
 
 .local-video {
@@ -154,23 +135,44 @@ body {
   transform: scaleX(-1);
 }
 
+.room-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 12;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(17, 27, 33, 0.88);
+  color: #d8fddf;
+  border: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.88rem;
+}
+
 .call-controls {
   position: absolute;
   left: 50%;
-  bottom: 26px;
+  bottom: calc(30% + 18px);
   transform: translateX(-50%);
   display: flex;
-  gap: 18px;
-  z-index: 25;
-  padding: 12px 16px;
+  gap: 16px;
+  z-index: 20;
+  padding: 10px 14px;
   border-radius: 999px;
   background: rgba(17, 27, 33, 0.72);
   backdrop-filter: blur(10px);
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+.call-controls.hidden {
+  opacity: 0;
+  pointer-events: none;
+  display: flex !important;
 }
 
 .control-btn {
-  min-width: 88px;
-  height: 88px;
+  min-width: 78px;
+  height: 78px;
   border: none;
   border-radius: 50%;
   display: flex;
@@ -192,14 +194,28 @@ body {
 }
 
 .control-icon {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
+}
+
+.switch-camera-btn {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 10;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(17, 27, 33, 0.88);
+  color: #fff;
+  font-size: 0.9rem;
+  cursor: pointer;
 }
 
 .footer-note {
   text-align: center;
   color: var(--muted);
-  font-size: 0.82rem;
-  padding: 10px 16px 16px;
+  font-size: 0.8rem;
+  padding: 8px 14px 14px;
 }
 
 .modal-backdrop {
@@ -221,18 +237,19 @@ body {
   width: min(100%, 430px);
   background: linear-gradient(180deg, #111b21 0%, #17242b 100%);
   border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 28px;
-  padding: 28px;
+  border-radius: 24px;
+  padding: 24px;
   box-shadow: var(--shadow);
 }
 
 .welcome-modal h2 {
   margin: 0 0 10px;
-  font-size: 1.45rem;
+  font-size: 1.3rem;
+  line-height: 1.3;
 }
 
 .welcome-modal p {
-  margin: 0 0 20px;
+  margin: 0 0 18px;
   color: var(--muted);
 }
 
@@ -243,14 +260,15 @@ body {
 
 .room-input {
   width: 100%;
-  height: 52px;
-  border: 1px solid rgba(255,255,255,0.1);
+  height: 54px;
+  border: 1px solid rgba(255,255,255,0.12);
   outline: none;
   border-radius: 14px;
   padding: 0 16px;
   background: #0b141a;
   color: var(--text);
   margin-bottom: 10px;
+  font-size: 16px;
 }
 
 .room-input:focus {
@@ -265,7 +283,7 @@ body {
 
 .input-error {
   color: #ff8f87;
-  font-size: 0.87rem;
+  font-size: 0.9rem;
   margin-bottom: 14px;
 }
 
@@ -278,30 +296,33 @@ body {
   color: #fff;
   font-weight: 700;
   cursor: pointer;
+  font-size: 16px;
 }
 
-@media (max-width: 768px) {
-  .call-page {
-    padding: 8px;
-  }
-
+@media (min-width: 900px) {
   .video-stage {
-    min-height: calc(100vh - 138px);
-    border-radius: 18px;
+    height: calc(100vh - 140px);
   }
 
-  .local-video-float {
-    width: 102px;
-    height: 102px;
-    top: 14px;
-    right: 14px;
-    border-width: 3px;
+  .local-panel {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    width: 30%;
+    min-width: 260px;
+    max-width: 380px;
+    height: 28%;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.1);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
   }
 
-  .control-btn {
-    width: 74px;
-    min-width: 74px;
-    height: 74px;
-    font-size: 0.86rem;
+  .remote-video-wrap {
+    height: 100%;
+  }
+
+  .call-controls {
+    bottom: 24px;
   }
 }

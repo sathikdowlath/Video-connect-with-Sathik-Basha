@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
   <title>Video connect with Sathik Basha</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +25,7 @@
     </header>
 
     <main class="call-page">
-      <section class="video-stage">
+      <section class="video-stage" id="videoStage">
         <div class="remote-video-wrap">
           <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
           <div class="remote-placeholder" id="remotePlaceholder">
@@ -31,11 +34,15 @@
           <div class="room-badge hidden" id="roomBadge"></div>
         </div>
 
-        <div class="local-video-float" id="localVideoFloat">
+        <div class="local-panel" id="localPanel">
           <video id="localVideo" class="local-video" autoplay muted playsinline></video>
+
+          <button id="switchCameraBtn" class="switch-camera-btn hidden" type="button">
+            Switch Camera
+          </button>
         </div>
 
-        <div class="call-controls">
+        <div class="call-controls hidden" id="callControls">
           <button id="muteBtn" class="control-btn mute-btn" type="button">
             <span class="control-icon" id="muteIcon">🎤</span>
             <span id="muteBtnText">Mute</span>
@@ -64,14 +71,13 @@
         id="roomCode"
         class="room-input"
         type="text"
+        inputmode="numeric"
         placeholder="Enter the code number"
         autocomplete="off"
       />
       <div class="input-error hidden" id="roomError">Please enter the code number</div>
 
-      <div class="modal-actions">
-        <button id="connectBtn" class="connect-btn" type="button">Connect</button>
-      </div>
+      <button id="connectBtn" class="connect-btn" type="button">Connect</button>
     </div>
   </div>
 
