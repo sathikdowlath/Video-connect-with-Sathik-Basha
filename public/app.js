@@ -76,27 +76,38 @@ function showControlsTemporarily() {
   }, 5000);
 }
 
-async function initLocalMedia(facingMode = currentFacingMode) {
+async function initLocalMedia(facingMode = currentFacingMode, keepAudioTrack = null) {
   if (localStream) {
     localStream.getTracks().forEach(track => track.stop());
     localStream = null;
   }
 
-  const videoConstraints = isMobileDevice()
-    ? { facingMode }
-    : true;
+  let audioTrack = keepAudioTrack;
 
-  localStream = await navigator.mediaDevices.getUserMedia({
-    video: videoConstraints,
-    audio: true
+  if (!audioTrack) {
+    const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
+      audio: true,
+      video: false
+    });
+    audioTrack = audioOnlyStream.getAudioTracks()[0];
+  }
+
+  const videoStream = await navigator.mediaDevices.getUserMedia({
+    video: isMobileDevice() ? { facingMode } : true,
+    audio: false
   });
 
+  const videoTrack = videoStream.getVideoTracks()[0];
+
+  localStream = new MediaStream([videoTrack, audioTrack]);
   localVideo.srcObject = localStream;
   currentFacingMode = facingMode;
 
   if (isMobileDevice()) {
     switchCameraBtn.classList.remove("hidden");
   }
+
+  return localStream;
 }
 
 function stopLocalMedia() {
@@ -164,10 +175,34 @@ async function replaceVideoTrack() {
   }
 }
 
+
 async function switchCamera() {
+  if (!localStream) return;
+
+  const currentAudioTrack = localStream.getAudioTracks()[0];
   const nextFacingMode = currentFacingMode === "user" ? "environment" : "user";
-  await initLocalMedia(nextFacingMode);
-  await replaceVideoTrack();
+
+  await initLocalMedia(nextFacingMode, currentAudioTrack);
+
+  if (peerConnection) {
+    const videoTrack = localStream.getVideoTracks()[0];
+    const videoSender = peerConnection.getSenders().find(
+      sender => sender.track && sender.track.kind === "video"
+    );
+
+    if (videoSender && videoTrack) {
+      await videoSender.replaceTrack(videoTrack);
+    }
+
+    const audioSender = peerConnection.getSenders().find(
+      sender => sender.track && sender.track.kind === "audio"
+    );
+
+    if (audioSender && currentAudioTrack) {
+      await audioSender.replaceTrack(currentAudioTrack);
+    }
+  }
+
   showControlsTemporarily();
 }
 

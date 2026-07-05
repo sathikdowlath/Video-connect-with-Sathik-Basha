@@ -202,13 +202,21 @@ input {
   right: 14px;
   bottom: 14px;
   z-index: 10;
+  width: 48px;
+  height: 48px;
   border: none;
-  border-radius: 999px;
-  padding: 10px 14px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
   background: rgba(17, 27, 33, 0.88);
   color: #fff;
-  font-size: 0.9rem;
   cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+}
+
+.switch-camera-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .footer-note {
